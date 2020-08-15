@@ -7,8 +7,7 @@
 
 
 //line license:1
-
-// This file is part of atag version 0.1
+// This file is part of atag
 //
 // Copyright (c) 2020 Alexander Sychev. All rights reserved.
 //
@@ -46,7 +45,7 @@ import(
 /*3:*/
 
 
-//line atag.w:19
+//line atag.w:23
 
 "fmt"
 "os"
@@ -60,9 +59,10 @@ import(
 /*5:*/
 
 
-//line atag.w:39
+//line atag.w:48
 
-"github.com/santucco/goacme"
+"strings"
+"regexp"
 
 
 
@@ -70,19 +70,39 @@ import(
 
 
 
-/*9:*/
+/*8:*/
 
 
-//line atag.w:80
+//line atag.w:72
 
-"strings"
+"github.com/santucco/goacme"
 
 
 
-/*:9*/
+/*:8*/
 
 
 //line atag.w:15
+
+)
+
+var(
+
+
+/*6:*/
+
+
+//line atag.w:53
+
+common[]string
+rgx map[*regexp.Regexp][]string= make(map[*regexp.Regexp][]string)
+
+
+
+/*:6*/
+
+
+//line atag.w:19
 
 )
 
@@ -95,20 +115,50 @@ import(
 /*4:*/
 
 
-//line atag.w:27
+//line atag.w:31
 
 func main(){
 if len(os.Args)==1{
-fmt.Fprintf(os.Stderr,"Tag extender\nExtends tags of Acme with specified commands\nUsage: %s <commands>\n",os.Args[0])
+fmt.Fprintf(os.Stderr,"Tag extender\nExtends tags of Acme with specified commands\n")
+fmt.Fprintf(os.Stderr,"Usage: %s [<regular expression>:]<commands> ...\nwhere:\n",os.Args[0])
+fmt.Fprintf(os.Stderr,"\t<regular expression> - a regular expression applied to window's name\n")
+fmt.Fprintf(os.Stderr,"\t<commands> - a list of commands is added in every Acme's window\n")
+fmt.Fprintf(os.Stderr,"\t\t\tor in windows matched by a specified <regular expression>\n")
 return
 }
-sync:=make(chan bool)
 
 
 /*7:*/
 
 
-//line atag.w:59
+//line atag.w:58
+
+for _,v:=range os.Args[1:]{
+v= strings.Trim(v,"\"'")
+f:=strings.Split(v,":")
+if len(f)==1{
+common= append(common,v)
+}else if r,err:=regexp.Compile(f[0]);err!=nil{
+fmt.Fprintf(os.Stderr,"cannot compile regexp %q: %s\n",f[0],err)
+}else{
+rgx[r]= strings.Fields(f[1])
+}
+}
+
+
+
+/*:7*/
+
+
+//line atag.w:41
+
+sync:=make(chan bool)
+
+
+/*10:*/
+
+
+//line atag.w:93
 
 go func(){
 <-sync
@@ -119,40 +169,51 @@ return
 }
 for _,v:=range ids{
 id:=v.Id
+name:=""
+if len(v.Tag)> 0{
+name= v.Tag[0]
+}
 
 
-/*8:*/
+/*11:*/
 
 
-//line atag.w:74
+//line atag.w:112
 
-if err:=writeTag(id,os.Args[1:]);err!=nil{
+var tag[]string
+for r,v:=range rgx{
+if r.Match([]byte(name)){
+tag= append(tag,v...)
+}
+}
+tag= append(tag,common...)
+if err:=writeTag(id,tag);err!=nil{
 fmt.Fprint(os.Stderr,err)
 }
 
 
 
-/*:8*/
+/*:11*/
 
 
-//line atag.w:69
+//line atag.w:107
 
 }
 }()
 
 
 
-/*:7*/
-
-
-//line atag.w:34
-
-
-
-/*6:*/
+/*:10*/
 
 
 //line atag.w:43
+
+
+
+/*9:*/
+
+
+//line atag.w:76
 
 log,err:=goacme.OpenLog()
 if err!=nil{
@@ -164,33 +225,41 @@ close(sync)
 for ev,err:=log.Read();err==nil;ev,err= log.Read(){
 if ev.Type==goacme.NewWin{
 id:=ev.Id
+name:=ev.Name
 
 
-/*8:*/
+/*11:*/
 
 
-//line atag.w:74
+//line atag.w:112
 
-if err:=writeTag(id,os.Args[1:]);err!=nil{
+var tag[]string
+for r,v:=range rgx{
+if r.Match([]byte(name)){
+tag= append(tag,v...)
+}
+}
+tag= append(tag,common...)
+if err:=writeTag(id,tag);err!=nil{
 fmt.Fprint(os.Stderr,err)
 }
 
 
 
-/*:8*/
+/*:11*/
 
 
-//line atag.w:54
+//line atag.w:88
 
 }
 }
 
 
 
-/*:6*/
+/*:9*/
 
 
-//line atag.w:35
+//line atag.w:44
 
 }
 
@@ -200,18 +269,18 @@ fmt.Fprint(os.Stderr,err)
 
 
 
-/*10:*/
+/*12:*/
 
 
-//line atag.w:84
+//line atag.w:125
 
 func writeTag(id int,list[]string)error{
 
 
-/*11:*/
+/*13:*/
 
 
-//line atag.w:96
+//line atag.w:137
 
 if len(list)==0{
 return nil
@@ -219,17 +288,17 @@ return nil
 
 
 
-/*:11*/
+/*:13*/
 
 
-//line atag.w:86
+//line atag.w:127
 
 
 
-/*12:*/
+/*14:*/
 
 
-//line atag.w:102
+//line atag.w:143
 
 w,err:=goacme.Open(id)
 if err!=nil{
@@ -239,17 +308,17 @@ defer w.Close()
 
 
 
-/*:12*/
+/*:14*/
 
 
-//line atag.w:87
+//line atag.w:128
 
 
 
-/*13:*/
+/*15:*/
 
 
-//line atag.w:110
+//line atag.w:151
 
 f,err:=w.File("tag")
 if err!=nil{
@@ -264,17 +333,17 @@ s:=string(b[:n])
 
 
 
-/*:13*/
+/*:15*/
 
 
-//line atag.w:88
+//line atag.w:129
 
 
 
-/*14:*/
+/*16:*/
 
 
-//line atag.w:123
+//line atag.w:164
 
 if n= strings.Index(s,"|");n==-1{
 n= 0
@@ -285,33 +354,45 @@ s= s[n:]
 
 
 
-/*:14*/
+/*:16*/
 
 
-//line atag.w:89
-
-
-
-/*15:*/
-
-
-//line atag.w:132
-
-s= " "+strings.Join(list," ")+s
+//line atag.w:130
 
 
 
-/*:15*/
+/*17:*/
 
 
-//line atag.w:90
+//line atag.w:173
+
+{
+f:=strings.Fields(s)
+var l[]string
+loop:for _,v:=range list{
+for _,v2:=range f{
+if v==v2{
+break loop
+}
+}
+l= append(l,v)
+}
+s= " "+strings.Join(l," ")+s
+}
 
 
 
-/*16:*/
+/*:17*/
 
 
-//line atag.w:136
+//line atag.w:131
+
+
+
+/*18:*/
+
+
+//line atag.w:189
 
 if err:=w.WriteCtl("cleartag");err!=nil{
 return fmt.Errorf("cannot clear the tag of the window with id %d: %s\n",id,err)
@@ -320,16 +401,16 @@ if _,err:=f.Write([]byte(s));err!=nil{
 return fmt.Errorf("cannot write the tag of the window with id %d: %s\n",id,err)
 }
 
-/*:16*/
+/*:18*/
 
 
-//line atag.w:91
+//line atag.w:132
 
 return nil
 }
 
 
 
-/*:10*/
+/*:12*/
 
 

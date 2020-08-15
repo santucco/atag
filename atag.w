@@ -2,7 +2,7 @@
 
 @** Introduction.
 This is an implementation of \.{atag} command for \.{Acme}. It adds specified commands to a tag of every \.{Acme}'s window
-
+or only in windows, matched by a regular expression.
 
 @** Implementation.
 @c
@@ -13,6 +13,10 @@ package main
 
 import (
 	@<Imports@>
+)@#
+
+var (
+	@<Global variables@>
 )@#
 
 @
@@ -27,12 +31,41 @@ Start of the enumeration is syncronized with the start of pulling \.{Acme}'s log
 @c
 func main () {
 	if len(os.Args)==1 {
-		fmt.Fprintf(os.Stderr, "Tag extender\nExtends tags of Acme with specified commands\nUsage: %s <commands>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Tag extender\nExtends tags of Acme with specified commands\n")
+		fmt.Fprintf(os.Stderr, "Usage: %s [<regular expression>:]<commands> ...\nwhere:\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "\t<regular expression> - a regular expression applied to window's name\n")
+		fmt.Fprintf(os.Stderr, "\t<commands> - a list of commands is added in every Acme's window\n")
+		fmt.Fprintf(os.Stderr, "\t\t\tor in windows matched by a specified <regular expression>\n")
 		return
 	}
+	@<Parsing of a command line@>
 	sync:=make(chan bool)
 	@<Enumerate the opened windows@>
 	@<Start polling of \.{Acme}'s log@>
+}
+
+@
+@<Imports@>=
+"strings"
+"regexp"
+
+@
+@<Global variables@>=
+common []string
+rgx    map[*regexp.Regexp][]string=make(map[*regexp.Regexp][]string)
+
+@
+@<Parsing of a command line@>=
+for _,v:=range os.Args[1:] {
+	v=strings.Trim(v, "\"'")
+	f:=strings.Split(v, ":")
+	if len(f)==1 {
+		common=append(common, v)
+	} else if r,err:=regexp.Compile(f[0]); err!=nil {
+		fmt.Fprintf(os.Stderr, "cannot compile regexp %q: %s\n", f[0], err)
+	} else {
+		rgx[r]=strings.Fields(f[1])
+	}
 }
 
 @
@@ -51,6 +84,7 @@ close(sync)
 for ev, err:=log.Read(); err==nil; ev, err=log.Read() {
 	if ev.Type==goacme.NewWin {
 		id:=ev.Id
+		name:=ev.Name
 		@<Write specified commands to a tag of the new window with |id| after pipe simbol@>
 	}
 }
@@ -66,19 +100,26 @@ go func() {
 	}
 	for _, v:=range ids {
 		id:=v.Id
+		name:=""
+		if len(v.Tag)>0 {
+			name=v.Tag[0]
+		}
 		@<Write specified commands to a tag of the new window with |id| after pipe simbol@>
 	}
 }()
 
 @
 @<Write specified commands to a tag of the new window with |id| after pipe simbol@>=
-if err:=writeTag(id, os.Args[1:]); err!=nil {
+var tag []string
+for r,v:=range rgx {
+	if r.Match([]byte(name)) {
+		tag=append(tag, v...)
+	}
+}
+tag=append(tag, common...)
+if err:=writeTag(id, tag); err!=nil {
 	fmt.Fprint(os.Stderr, err)
 }
-
-@
-@<Imports@>=
-"strings"
 
 @ Let's describe a writing of tag like a function
 @c
@@ -128,9 +169,21 @@ if n=strings.Index(s, "|"); n==-1 {
 }
 s=s[n:]
 
-@
+@ We remove duplicates from added command
 @<Compose a new tag@>=
-s=" "+strings.Join(list, " ")+s
+{
+	f:=strings.Fields(s)
+	var l []string
+	loop: for _, v:=range list {
+		for _, v2:=range f {
+			if v==v2 {
+				break loop
+			}
+		}
+		l=append(l, v)
+	}
+	s=" "+strings.Join(l, " ")+s
+}
 
 @
 @<Clear the tag and write the new tag@>=

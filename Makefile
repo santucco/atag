@@ -1,4 +1,4 @@
-# This file is part of atag version 0.1
+# This file is part of atag
 #
 # Copyright (c) 2020 Alexander Sychev. All rights reserved.
 #
