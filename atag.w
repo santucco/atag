@@ -177,12 +177,13 @@ s=s[n:]
 	loop: for _, v:=range list {
 		for _, v2:=range f {
 			if v==v2 {
-				break loop
+				continue loop
 			}
 		}
 		l=append(l, v)
 	}
-	s=" "+strings.Join(l, " ")+s
+	l=append(l, f...)
+	s=" "+strings.Join(l, " ")
 }
 
 @

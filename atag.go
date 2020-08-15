@@ -372,12 +372,13 @@ var l[]string
 loop:for _,v:=range list{
 for _,v2:=range f{
 if v==v2{
-break loop
+continue loop
 }
 }
 l= append(l,v)
 }
-s= " "+strings.Join(l," ")+s
+l= append(l,f...)
+s= " "+strings.Join(l," ")
 }
 
 
@@ -392,7 +393,7 @@ s= " "+strings.Join(l," ")+s
 /*18:*/
 
 
-//line atag.w:189
+//line atag.w:190
 
 if err:=w.WriteCtl("cleartag");err!=nil{
 return fmt.Errorf("cannot clear the tag of the window with id %d: %s\n",id,err)
