@@ -63,6 +63,7 @@ import(
 
 "strings"
 "regexp"
+"unicode"
 
 
 
@@ -70,16 +71,16 @@ import(
 
 
 
-/*8:*/
+/*9:*/
 
 
-//line atag.w:72
+//line atag.w:101
 
 "github.com/santucco/goacme"
 
 
 
-/*:8*/
+/*:9*/
 
 
 //line atag.w:15
@@ -92,7 +93,7 @@ var(
 /*6:*/
 
 
-//line atag.w:53
+//line atag.w:54
 
 common[]string
 rgx map[*regexp.Regexp][]string= make(map[*regexp.Regexp][]string)
@@ -128,26 +129,25 @@ return
 }
 
 
-/*7:*/
+/*8:*/
 
 
-//line atag.w:58
+//line atag.w:88
 
 for _,v:=range os.Args[1:]{
-v= strings.Trim(v,"\"'")
 f:=strings.Split(v,":")
 if len(f)==1{
 common= append(common,v)
 }else if r,err:=regexp.Compile(f[0]);err!=nil{
 fmt.Fprintf(os.Stderr,"cannot compile regexp %q: %s\n",f[0],err)
 }else{
-rgx[r]= strings.Fields(f[1])
+rgx[r]= args(f[1])
 }
 }
 
 
 
-/*:7*/
+/*:8*/
 
 
 //line atag.w:41
@@ -155,10 +155,10 @@ rgx[r]= strings.Fields(f[1])
 sync:=make(chan bool)
 
 
-/*10:*/
+/*11:*/
 
 
-//line atag.w:93
+//line atag.w:122
 
 go func(){
 <-sync
@@ -175,10 +175,10 @@ name= v.Tag[0]
 }
 
 
-/*11:*/
+/*12:*/
 
 
-//line atag.w:112
+//line atag.w:141
 
 var tag[]string
 for r,v:=range rgx{
@@ -193,27 +193,27 @@ fmt.Fprint(os.Stderr,err)
 
 
 
-/*:11*/
+/*:12*/
 
 
-//line atag.w:107
+//line atag.w:136
 
 }
 }()
 
 
 
-/*:10*/
+/*:11*/
 
 
 //line atag.w:43
 
 
 
-/*9:*/
+/*10:*/
 
 
-//line atag.w:76
+//line atag.w:105
 
 log,err:=goacme.OpenLog()
 if err!=nil{
@@ -228,10 +228,10 @@ id:=ev.Id
 name:=ev.Name
 
 
-/*11:*/
+/*12:*/
 
 
-//line atag.w:112
+//line atag.w:141
 
 var tag[]string
 for r,v:=range rgx{
@@ -246,17 +246,17 @@ fmt.Fprint(os.Stderr,err)
 
 
 
-/*:11*/
+/*:12*/
 
 
-//line atag.w:88
+//line atag.w:117
 
 }
 }
 
 
 
-/*:9*/
+/*:10*/
 
 
 //line atag.w:44
@@ -269,18 +269,56 @@ fmt.Fprint(os.Stderr,err)
 
 
 
-/*12:*/
+/*7:*/
 
 
-//line atag.w:125
+//line atag.w:59
 
-func writeTag(id int,list[]string)error{
+func args(s string)[]string{
+openeds:=false
+openedd:=false
+escaped:=false
+ff:=func(r rune)bool{
+if!openeds&&!openedd&&!escaped&&unicode.IsSpace(r){
+return true
+}
+if r=='\\'{
+escaped= !escaped
+return false
+}
+if r=='\''&&!escaped{
+openeds= !openeds
+}
+
+if r=='"'&&!escaped{
+openedd= !openedd
+}
+escaped= false
+return false
+}
+return strings.FieldsFunc(s,ff)
+}
+
+
+
+
+
+/*:7*/
+
 
 
 /*13:*/
 
 
-//line atag.w:137
+//line atag.w:154
+
+func writeTag(id int,list[]string)error{
+
+
+/*14:*/
+
+
+//line atag.w:166
 
 if len(list)==0{
 return nil
@@ -288,17 +326,17 @@ return nil
 
 
 
-/*:13*/
+/*:14*/
 
 
-//line atag.w:127
+//line atag.w:156
 
 
 
-/*14:*/
+/*15:*/
 
 
-//line atag.w:143
+//line atag.w:172
 
 w,err:=goacme.Open(id)
 if err!=nil{
@@ -308,17 +346,17 @@ defer w.Close()
 
 
 
-/*:14*/
+/*:15*/
 
 
-//line atag.w:128
+//line atag.w:157
 
 
 
-/*15:*/
+/*16:*/
 
 
-//line atag.w:151
+//line atag.w:180
 
 f,err:=w.File("tag")
 if err!=nil{
@@ -333,17 +371,17 @@ s:=string(b[:n])
 
 
 
-/*:15*/
+/*:16*/
 
 
-//line atag.w:129
+//line atag.w:158
 
 
 
-/*16:*/
+/*17:*/
 
 
-//line atag.w:164
+//line atag.w:193
 
 if n= strings.Index(s,"|");n==-1{
 n= 0
@@ -354,46 +392,40 @@ s= s[n:]
 
 
 
-/*:16*/
-
-
-//line atag.w:130
-
-
-
-/*17:*/
-
-
-//line atag.w:173
-
-{
-f:=strings.Fields(s)
-var l[]string
-loop:for _,v:=range list{
-for _,v2:=range f{
-if v==v2{
-continue loop
-}
-}
-l= append(l,v)
-}
-l= append(l,f...)
-s= " "+strings.Join(l," ")
-}
-
-
-
 /*:17*/
 
 
-//line atag.w:131
+//line atag.w:159
 
 
 
 /*18:*/
 
 
-//line atag.w:190
+//line atag.w:202
+
+{
+for _,v:=range list{
+s= strings.ReplaceAll(s,v,"")
+s= strings.ReplaceAll(s,strings.Trim(v,"\"'"),"")
+}
+list= append(list,strings.Fields(s)...)
+s= " "+strings.Join(list," ")
+}
+
+
+
+/*:18*/
+
+
+//line atag.w:160
+
+
+
+/*19:*/
+
+
+//line atag.w:213
 
 if err:=w.WriteCtl("cleartag");err!=nil{
 return fmt.Errorf("cannot clear the tag of the window with id %d: %s\n",id,err)
@@ -402,16 +434,16 @@ if _,err:=f.Write([]byte(s));err!=nil{
 return fmt.Errorf("cannot write the tag of the window with id %d: %s\n",id,err)
 }
 
-/*:18*/
+/*:19*/
 
 
-//line atag.w:132
+//line atag.w:161
 
 return nil
 }
 
 
 
-/*:12*/
+/*:13*/
 
 

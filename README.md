@@ -14,3 +14,8 @@ If you want to add commands only for specific kind of files, you can specify a r
 atag ".go:go build" ahist
 ```
 In the case `go build` will be added to every window whose name is matched by `.go` and `ahist` will be added to every ***Acme***'s window.
+
+Compound commands can be specified:
+```
+atag ".w:ahist 'make install'" "\"Edit s/one/two/g\""
+```

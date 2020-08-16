@@ -48,23 +48,52 @@ func main () {
 @<Imports@>=
 "strings"
 "regexp"
+"unicode"
 
 @
 @<Global variables@>=
 common []string
 rgx    map[*regexp.Regexp][]string=make(map[*regexp.Regexp][]string)
 
+@ Let's define an extendend func for fields parsing with escaped symbols and nested quoted strings
+@c
+func args(s string) []string {
+	openeds:=false
+	openedd:=false
+	escaped:=false
+	ff:=func(r rune) bool {
+		if !openeds && !openedd && !escaped && unicode.IsSpace(r) {
+			return true
+		}
+		if r=='\\' {
+			escaped=!escaped
+			return false
+		}
+		if r=='\'' && !escaped {
+			openeds=!openeds
+		}
+
+		if r=='"' && !escaped {
+			openedd=!openedd
+		}
+		escaped=false
+		return false
+	}
+	return strings.FieldsFunc(s, ff)
+}
+
+
+
 @
 @<Parsing of a command line@>=
 for _,v:=range os.Args[1:] {
-	v=strings.Trim(v, "\"'")
 	f:=strings.Split(v, ":")
 	if len(f)==1 {
 		common=append(common, v)
 	} else if r,err:=regexp.Compile(f[0]); err!=nil {
 		fmt.Fprintf(os.Stderr, "cannot compile regexp %q: %s\n", f[0], err)
 	} else {
-		rgx[r]=strings.Fields(f[1])
+		rgx[r]=args(f[1])
 	}
 }
 
@@ -172,18 +201,12 @@ s=s[n:]
 @ We remove duplicates from added command
 @<Compose a new tag@>=
 {
-	f:=strings.Fields(s)
-	var l []string
-	loop: for _, v:=range list {
-		for _, v2:=range f {
-			if v==v2 {
-				continue loop
-			}
-		}
-		l=append(l, v)
+	for _, v:=range list {
+		s=strings.ReplaceAll(s, v, "")
+		s=strings.ReplaceAll(s, strings.Trim(v, "\"'"), "")
 	}
-	l=append(l, f...)
-	s=" "+strings.Join(l, " ")
+	list=append(list, strings.Fields(s)...)
+	s=" "+strings.Join(list, " ")
 }
 
 @
