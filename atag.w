@@ -87,13 +87,17 @@ func args(s string) []string {
 @
 @<Parsing of a command line@>=
 for _,v:=range os.Args[1:] {
-	f:=strings.Split(v, ":")
-	if len(f)==1 {
+	sv:=args(v)
+	f:=strings.Split(sv[0], ":")
+	if len(f)==1 || len(f[0])==0 {
 		common=append(common, v)
 	} else if r,err:=regexp.Compile(f[0]); err!=nil {
 		fmt.Fprintf(os.Stderr, "cannot compile regexp %q: %s\n", f[0], err)
 	} else {
 		rgx[r]=args(f[1])
+		if len(sv)>1 {
+			rgx[r]=append(rgx[r], sv[1:]...)
+		}
 	}
 }
 

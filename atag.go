@@ -9,7 +9,7 @@
 //line license:1
 // This file is part of atag
 //
-// Copyright (c) 2020 Alexander Sychev. All rights reserved.
+// Copyright (c) 2020, 2023 Alexander Sychev. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -74,7 +74,7 @@ import(
 /*9:*/
 
 
-//line atag.w:101
+//line atag.w:105
 
 "github.com/santucco/goacme"
 
@@ -135,13 +135,17 @@ return
 //line atag.w:88
 
 for _,v:=range os.Args[1:]{
-f:=strings.Split(v,":")
-if len(f)==1{
+sv:=args(v)
+f:=strings.Split(sv[0],":")
+if len(f)==1||len(f[0])==0{
 common= append(common,v)
 }else if r,err:=regexp.Compile(f[0]);err!=nil{
 fmt.Fprintf(os.Stderr,"cannot compile regexp %q: %s\n",f[0],err)
 }else{
 rgx[r]= args(f[1])
+if len(sv)> 1{
+rgx[r]= append(rgx[r],sv[1:]...)
+}
 }
 }
 
@@ -158,7 +162,7 @@ sync:=make(chan bool)
 /*11:*/
 
 
-//line atag.w:122
+//line atag.w:126
 
 go func(){
 <-sync
@@ -178,7 +182,7 @@ name= v.Tag[0]
 /*12:*/
 
 
-//line atag.w:141
+//line atag.w:145
 
 var tag[]string
 for r,v:=range rgx{
@@ -196,7 +200,7 @@ fmt.Fprint(os.Stderr,err)
 /*:12*/
 
 
-//line atag.w:136
+//line atag.w:140
 
 }
 }()
@@ -213,7 +217,7 @@ fmt.Fprint(os.Stderr,err)
 /*10:*/
 
 
-//line atag.w:105
+//line atag.w:109
 
 log,err:=goacme.OpenLog()
 if err!=nil{
@@ -231,7 +235,7 @@ name:=ev.Name
 /*12:*/
 
 
-//line atag.w:141
+//line atag.w:145
 
 var tag[]string
 for r,v:=range rgx{
@@ -249,7 +253,7 @@ fmt.Fprint(os.Stderr,err)
 /*:12*/
 
 
-//line atag.w:117
+//line atag.w:121
 
 }
 }
@@ -310,7 +314,7 @@ return strings.FieldsFunc(s,ff)
 /*13:*/
 
 
-//line atag.w:154
+//line atag.w:158
 
 func writeTag(id int,list[]string)error{
 
@@ -318,7 +322,7 @@ func writeTag(id int,list[]string)error{
 /*14:*/
 
 
-//line atag.w:166
+//line atag.w:170
 
 if len(list)==0{
 return nil
@@ -329,14 +333,14 @@ return nil
 /*:14*/
 
 
-//line atag.w:156
+//line atag.w:160
 
 
 
 /*15:*/
 
 
-//line atag.w:172
+//line atag.w:176
 
 w,err:=goacme.Open(id)
 if err!=nil{
@@ -349,14 +353,14 @@ defer w.Close()
 /*:15*/
 
 
-//line atag.w:157
+//line atag.w:161
 
 
 
 /*16:*/
 
 
-//line atag.w:180
+//line atag.w:184
 
 f,err:=w.File("tag")
 if err!=nil{
@@ -374,14 +378,14 @@ s:=string(b[:n])
 /*:16*/
 
 
-//line atag.w:158
+//line atag.w:162
 
 
 
 /*17:*/
 
 
-//line atag.w:193
+//line atag.w:197
 
 if n= strings.Index(s,"|");n==-1{
 n= 0
@@ -395,14 +399,14 @@ s= s[n:]
 /*:17*/
 
 
-//line atag.w:159
+//line atag.w:163
 
 
 
 /*18:*/
 
 
-//line atag.w:202
+//line atag.w:206
 
 {
 for _,v:=range list{
@@ -418,14 +422,14 @@ s= " "+strings.Join(list," ")
 /*:18*/
 
 
-//line atag.w:160
+//line atag.w:164
 
 
 
 /*19:*/
 
 
-//line atag.w:213
+//line atag.w:217
 
 if err:=w.WriteCtl("cleartag");err!=nil{
 return fmt.Errorf("cannot clear the tag of the window with id %d: %s\n",id,err)
@@ -437,7 +441,7 @@ return fmt.Errorf("cannot write the tag of the window with id %d: %s\n",id,err)
 /*:19*/
 
 
-//line atag.w:161
+//line atag.w:165
 
 return nil
 }
